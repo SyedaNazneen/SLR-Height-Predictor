@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Linear Regression Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for better aesthetics */
+        .card-glow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-lg">
+        <div class="bg-white card-glow p-8 rounded-xl border border-gray-200">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Height Predictor (SLR)</h1>
+            <p class="text-sm text-gray-500 mb-6">Mid-Parent Height (inches) ke aadhar par Child's Height ka anuman lagana.</p>
+            
+            <!-- Model Metrics (In values ko Python script ke output se badalna hai!) -->
+            <div class="space-y-3 mb-8 p-4 bg-indigo-50 rounded-lg">
+                <h2 class="text-lg font-semibold text-indigo-800">Model Performance (Update Karein)</h2>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <p class="font-medium text-indigo-700">Train Accuracy ($R^2$):</p><p class="text-right font-bold" id="train-accuracy">0.9428</p>
+                    <p class="font-medium text-indigo-700">Test Accuracy ($R^2$):</p><p class="text-right font-bold" id="test-accuracy">0.9485</p>
+                    <p class="font-medium text-indigo-700">Train Loss (MSE):</p><p class="text-right" id="train-loss">0.2206</p>
+                    <p class="font-medium text-indigo-700">Test Loss (MSE):</p><p class="text-right" id="test-loss">0.0217</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <label for="inputHeight" class="block text-sm font-medium text-gray-700">
+                    Mid-Parent Height (X) Inches mein:
+                </label>
+                <input type="number" id="inputHeight" placeholder="Jaise, 68.5"
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-lg"
+                    min="50" max="80" step="0.1">
+                
+                <button id="predictButton"
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Child's Height Predict Karein
+                </button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="resultBox" class="mt-8 p-6 bg-green-100 border-l-4 border-green-500 rounded-lg hidden">
+                <h3 class="text-xl font-semibold text-green-800 mb-2">Anumanit Height (Y)</h3>
+                <p class="text-3xl font-extrabold text-green-700">
+                    <span id="predictedValue">--</span> inches
+                </p>
+                <p class="text-xs text-green-600 mt-2">
+                    Linear model ka upyog karte hue: Y = <span id="beta0_display"></span> + <span id="beta1_display"></span> * X
+                </p>
+            </div>
+            
+            <!-- Error/Info Message Box -->
+            <div id="messageBox" class="mt-4 p-4 bg-red-100 border-l-4 border-red-500 rounded-lg hidden">
+                <p id="messageText" class="text-sm text-red-700"></p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Coefficients (ZAROOR UPDATE KAREIN APNE PYTHON OUTPUT SE) ---
+        // Yeh sirf placeholder values hain.
+        const BETA_0 = -13.0800 ; // Intercept (beta0) ki value yahan daalein
+        const BETA_1 = 1.1800; // Slope (beta1) ki value yahan daalein
+        
+        // --- 2. Element References ---
+        const inputHeight = document.getElementById('inputHeight');
+        const predictButton = document.getElementById('predictButton');
+        const resultBox = document.getElementById('resultBox');
+        const predictedValue = document.getElementById('predictedValue');
+        const beta0Display = document.getElementById('beta0_display');
+        const beta1Display = document.getElementById('beta1_display');
+        const messageBox = document.getElementById('messageBox');
+        
+        // Display coefficients in the UI footer
+        beta0Display.textContent = BETA_0.toFixed(4);
+        beta1Display.textContent = BETA_1.toFixed(4);
+
+        /**
+         * Prediction perform karta hai.
+         */
+        function performPrediction() {
+            messageBox.classList.add('hidden');
+            resultBox.classList.add('hidden');
+
+            const x = parseFloat(inputHeight.value);
+
+            if (isNaN(x) || x <= 0) {
+                document.getElementById('messageText').textContent = "Kripya anuman lagane ke liye ek sahi, positive height value daalein.";
+                messageBox.classList.remove('hidden');
+                return;
+            }
+
+            // Simple Linear Regression Formula: Y = B0 + B1 * X
+            const predictedY = BETA_0 + (BETA_1 * x);
+
+            if (predictedY > 0) {
+                predictedValue.textContent = predictedY.toFixed(2);
+                resultBox.classList.remove('hidden');
+            } else {
+                 document.getElementById('messageText').textContent = "Anuman non-positive value mein aaya. Kripya model parameters check karein.";
+                 messageBox.classList.remove('hidden');
+            }
+        }
+
+        // --- 3. Event Listeners ---
+        predictButton.addEventListener('click', performPrediction);
+        inputHeight.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performPrediction();
+            }
+        });
+
+    </script>
+</body>
+</html>
